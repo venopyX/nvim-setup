@@ -18,6 +18,13 @@ vim.opt.rtp:prepend(lazypath)
 -- Basic Settings
 vim.g.mapleader = " " -- Space as leader key
 vim.g.maplocalleader = ","
+
+-- Better key timeout handling
+vim.opt.timeout = true
+vim.opt.timeoutlen = 300
+vim.opt.ttimeoutlen = 10
+
+-- Other basic settings
 vim.opt.number = true -- Line numbers
 vim.opt.relativenumber = true -- Relative line numbers
 vim.opt.cursorline = true -- Highlight current line
@@ -30,7 +37,6 @@ vim.opt.ignorecase = true -- Case insensitive search
 vim.opt.smartcase = true -- Case sensitive when uppercase present
 vim.opt.signcolumn = "yes" -- Always show sign column
 vim.opt.updatetime = 250 -- Faster update time
-vim.opt.timeoutlen = 300 -- Faster timeout
 vim.opt.splitright = true -- Open vertical splits to the right
 vim.opt.splitbelow = true -- Open horizontal splits below
 vim.opt.scrolloff = 8 -- Minimum lines to keep above/below cursor
@@ -50,6 +56,62 @@ vim.opt.hidden = true -- Allow unsaved buffers
 vim.env.GOBIN = vim.env.HOME .. "/go/bin"
 vim.env.PATH = vim.env.PATH .. ":" .. vim.env.GOBIN
 
+-- Enhanced diagnostic config
+vim.diagnostic.config({
+  virtual_text = {
+    prefix = "●",
+    spacing = 4,
+    source = "if_many",
+    severity = {
+      min = vim.diagnostic.severity.HINT,
+    },
+  },
+  float = {
+    border = "rounded",
+    source = "always",
+    header = "",
+    prefix = "",
+  },
+  severity_sort = true,
+  update_in_insert = false,
+})
+
+-- Modern cursor handling
+vim.opt.guicursor = {
+  "n-v-c:block",
+  "i-ci-ve:ver25",
+  "r-cr:hor20",
+  "o:hor50",
+  "i:blinkwait700-blinkoff400-blinkon250-Cursor/lCursor",
+  "sm:block-blinkwait175-blinkoff150-blinkon175",
+}
+
+-- Better undo and backup handling
+vim.opt.swapfile = false
+vim.opt.backup = false
+vim.opt.undodir = vim.fn.stdpath("data") .. "/undodir"
+vim.opt.undofile = true
+vim.opt.undolevels = 10000
+
+-- LSP Improvements
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+capabilities.textDocument.inlayHint = true
+
+-- Folding settings
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+vim.opt.foldlevel = 99
+vim.opt.foldlevelstart = 99
+vim.opt.foldenable = true
+
+-- Set up UFO folding with correct fillchars
+vim.opt.fillchars = {
+    eob = ' ',
+    fold = ' ',
+    foldopen = '▾',
+    foldsep = ' ',
+    foldclose = '▸',
+}
 
 -- Load plugins with lazy.nvim
 require("lazy").setup({
@@ -281,144 +343,189 @@ require("lazy").setup({
     end,
   },
   
-  -- LSP configuration
+  -- Dashboard/Start screen
   {
-    "neovim/nvim-lspconfig",
-    dependencies = {
-      -- Automatically install LSPs
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-      -- Additional lua configuration
-      "folke/neodev.nvim",
-      -- LSP status
-      { "j-hui/fidget.nvim", tag = "legacy" },
-    },
+    "goolord/alpha-nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
-      -- Setup mason
-      require("mason").setup()
-      require("mason-lspconfig").setup {
-        ensure_installed = {
-          "gopls",
-          "tsserver",
-          "pyright",
-          "lua_ls",
-          "rust_analyzer",
-        },
-        automatic_installation = true,
+      local alpha = require("alpha")
+      local dashboard = require("alpha.themes.dashboard")
+      
+      -- Custom header
+      dashboard.section.header.val = {
+        "                                                     ",
+        "  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗ ",
+        "  ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║ ",
+        "  ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║ ",
+        "  ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║ ",
+        "  ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║ ",
+        "  ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝ ",
+        "                                                     ",
       }
       
-      -- Setup lua development for neovim
-      require("neodev").setup()
-      
-      -- Status updates for LSP
-      require("fidget").setup()
-      
-      -- LSP settings
-      local lspconfig = require("lspconfig")
-      
-      -- Define on_attach function
-      local on_attach = function(client, bufnr)
-        -- Enable completion triggered by <c-x><c-o>
-        vim.api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
-        
-        -- Buffer local mappings
-        local opts = { noremap=true, silent=true, buffer=bufnr }
-        vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
-        vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
-        vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-        vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
-        vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
-        vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, opts)
-        vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
-        vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
-        vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
-        vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format { async = true } end, opts)
-      end
-      
-      -- Common capabilities
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      capabilities = require("cmp_nvim_lsp").default_capabilities(capabilities)
-      
-      -- Setup LSP servers
-      lspconfig.gopls.setup {
-        on_attach = on_attach,
-        capabilities = capabilities,
-        settings = {
-          gopls = {
-            analyses = {
-              unusedparams = true,
-            },
-            staticcheck = true,
-            gofumpt = true,
-          },
-        },
+      -- Menu
+      dashboard.section.buttons.val = {
+        dashboard.button("f", "  Find file", ":Telescope find_files <CR>"),
+        dashboard.button("e", "  New file", ":ene <BAR> startinsert <CR>"),
+        dashboard.button("r", "  Recently used files", ":Telescope oldfiles <CR>"),
+        dashboard.button("t", "  Find text", ":Telescope live_grep <CR>"),
+        dashboard.button("c", "  Configuration", ":e ~/.config/nvim/init.lua <CR>"),
+        dashboard.button("q", "  Quit Neovim", ":qa<CR>"),
       }
       
-      lspconfig.tsserver.setup {
-        on_attach = on_attach,
-        capabilities = capabilities,
-      }
+      -- Footer
+      dashboard.section.footer.val = "Ready to code like a pro!"
       
-      lspconfig.pyright.setup {
-        on_attach = on_attach,
-        capabilities = capabilities,
-        settings = {
-          python = {
-            analysis = {
-              typeCheckingMode = "basic",
-              autoSearchPaths = true,
-              useLibraryCodeForTypes = true,
-            },
-          },
-        },
-      }
-      
-      lspconfig.lua_ls.setup {
-        on_attach = on_attach,
-        capabilities = capabilities,
-        settings = {
-          Lua = {
-            runtime = {
-              version = "LuaJIT",
-            },
-            diagnostics = {
-              globals = { "vim" },
-            },
-            workspace = {
-              library = vim.api.nvim_get_runtime_file("", true),
-              checkThirdParty = false,
-            },
-            telemetry = {
-              enable = false,
-            },
-          },
-        },
-      }
-      
-      lspconfig.rust_analyzer.setup {
-        on_attach = on_attach,
-        capabilities = capabilities,
-        settings = {
-          ["rust-analyzer"] = {
-            assist = {
-              importGranularity = "module",
-              importPrefix = "self",
-            },
-            cargo = {
-              loadOutDirsFromCheck = true,
-            },
-            procMacro = {
-              enable = true,
-            },
-          },
-        },
-      }
+      alpha.setup(dashboard.opts)
     end,
   },
 
-  -- Completions
+  -- Go development tools
+  {
+    "ray-x/go.nvim",
+    dependencies = {
+      "ray-x/guihua.lua",
+      "neovim/nvim-lspconfig",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    config = function()
+      require("go").setup({
+        goimport = 'gopls',
+        gofmt = 'gopls',
+        max_line_len = 120,
+        tag_transform = false,
+        verbose = false,
+        log_path = vim.fn.expand("$HOME") .. "/tmp/gonvim.log",
+        lsp_codelens = true,
+        lsp_keymaps = false,
+        lsp_document_formatting = true,
+        diagnostic = {
+          hdlr = true,
+          virtual_text = true,
+          underline = true,
+        },
+        test_dir = '',
+        run_in_floaterm = true,
+      })
+
+      -- Set up autocommands for Go
+      local autocmd = vim.api.nvim_create_autocmd
+      autocmd("BufWritePre", {
+        pattern = "*.go",
+        callback = function()
+          require('go.format').goimport()
+        end,
+      })
+
+      -- Key mappings for Go
+      local function map(mode, lhs, rhs, opts)
+        local options = { noremap = true, silent = true }
+        if opts then options = vim.tbl_extend("force", options, opts) end
+        vim.keymap.set(mode, lhs, rhs, options)
+      end
+
+      map("n", "<leader>gt", "<cmd>GoTest<CR>", { desc = "Go Test" })
+      map("n", "<leader>gtf", "<cmd>GoTestFunc<CR>", { desc = "Go Test Function" })
+      map("n", "<leader>gr", "<cmd>GoRun<CR>", { desc = "Go Run" })
+      map("n", "<leader>gi", "<cmd>GoImport<CR>", { desc = "Go Import" })
+      map("n", "<leader>gI", "<cmd>GoImpl<CR>", { desc = "Go Implement" })
+      map("n", "<leader>gfs", "<cmd>GoFillStruct<CR>", { desc = "Go Fill Struct" })
+      map("n", "<leader>gat", "<cmd>GoAddTag<CR>", { desc = "Go Add Tags" })
+      map("n", "<leader>grt", "<cmd>GoRmTag<CR>", { desc = "Go Remove Tags" })
+    end,
+  },
+
+  -- Which-key for keybinding help
+  {
+    "folke/which-key.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("which-key").setup {
+        plugins = {
+          marks = true,
+          registers = true,
+          spelling = {
+            enabled = true,
+            suggestions = 20,
+          },
+        },
+        window = {
+          border = "rounded",
+          padding = { 2, 2, 2, 2 },
+        },
+      }
+      
+      -- Register key groups
+      local wk = require("which-key")
+      wk.register({
+        f = {
+          name = "File",
+          f = { "<cmd>Telescope find_files<cr>", "Find File" },
+          r = { "<cmd>Telescope oldfiles<cr>", "Open Recent File" },
+          g = { "<cmd>Telescope live_grep<cr>", "Live Grep" },
+          b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
+          n = { "<cmd>enew<cr>", "New File" },
+        },
+        g = {
+          name = "Git",
+          s = { "Stage Hunk" },
+          r = { "Reset Hunk" },
+          S = { "Stage Buffer" },
+          u = { "Undo Stage Hunk" },
+          R = { "Reset Buffer" },
+          p = { "Preview Hunk" },
+          b = { "Blame Line" },
+          d = { "Diff This" },
+          D = { "Diff This ~" },
+        },
+        p = {
+          name = "Project",
+          f = { "<cmd>Telescope git_files<cr>", "Find Git Files" },
+          s = { "<cmd>Telescope git_status<cr>", "Git Status" },
+          b = { "<cmd>Telescope git_branches<cr>", "Git Branches" },
+          c = { "<cmd>Telescope git_commits<cr>", "Git Commits" },
+          t = { "<cmd>NvimTreeToggle<cr>", "Toggle NvimTree" },
+        },
+        l = {
+          name = "LSP",
+          a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
+          d = { "<cmd>lua vim.lsp.buf.definition()<cr>", "Go To Definition" },
+          D = { "<cmd>lua vim.lsp.buf.declaration()<cr>", "Go To Declaration" },
+          i = { "<cmd>lua vim.lsp.buf.implementation()<cr>", "Go To Implementation" },
+          r = { "<cmd>lua vim.lsp.buf.references()<cr>", "References" },
+          R = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
+          f = { "<cmd>lua vim.lsp.buf.format({ async = true })<cr>", "Format" },
+          h = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Hover Documentation" },
+          s = { "<cmd>lua vim.lsp.buf.signature_help()<cr>", "Signature Help" },
+          t = { "<cmd>lua vim.lsp.buf.type_definition()<cr>", "Type Definition" },
+          l = { "<cmd>lua vim.diagnostic.open_float()<cr>", "Line Diagnostics" },
+        },
+        t = {
+          name = "Toggle",
+          t = { "<cmd>ToggleTerm<cr>", "Terminal" },
+          b = { "Toggle Git Blame" },
+          d = { "Toggle Deleted" },
+        },
+        w = {
+          name = "Window",
+          v = { "<cmd>vsplit<cr>", "Vertical Split" },
+          s = { "<cmd>split<cr>", "Horizontal Split" },
+          h = { "<cmd>wincmd h<CR>", "Move Left" },
+          j = { "<cmd>wincmd j<CR>", "Move Down" },
+          k = { "<cmd>wincmd k<CR>", "Move Up" },
+          l = { "<cmd>wincmd l<CR>", "Move Right" },
+          q = { "<cmd>q<cr>", "Close Window" },
+          o = { "<cmd>only<cr>", "Only Window" },
+        },
+        ["<space>"] = { "<cmd>Telescope<cr>", "Telescope" },
+      }, { prefix = "<leader>" })
+    end,
+  },
+
+  -- Completions with lazy loading
   {
     "hrsh7th/nvim-cmp",
+    event = "InsertEnter",
     dependencies = {
       "hrsh7th/cmp-nvim-lsp",
       "hrsh7th/cmp-buffer",
@@ -524,77 +631,110 @@ require("lazy").setup({
     end,
   },
   
-  -- Syntax highlighting
+  -- Syntax highlighting with lazy loading
   {
     "nvim-treesitter/nvim-treesitter",
+    event = { "BufReadPost", "BufNewFile" },
     build = ":TSUpdate",
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
-      "windwp/nvim-ts-autotag",
-    },
     config = function()
-      require("nvim-treesitter.configs").setup {
+      require("nvim-treesitter.configs").setup({
         ensure_installed = {
           "go", "gomod", "gosum", "gowork",
-          "typescript", "tsx", "javascript", "html", "css", "json",
+          "typescript", "tsx", "javascript",
           "python",
-          "lua", "vim", "vimdoc",
+          "lua", "vim",
           "rust",
-          "markdown", "markdown_inline",
-          "bash",
-          "regex",
-          "c", "cpp",
-          "yaml",
-          "dockerfile",
         },
-        highlight = {
-          enable = true,
-          additional_vim_regex_highlighting = false,
-        },
-        indent = {
-          enable = true,
-        },
-        autotag = {
-          enable = true,
-        },
-        textobjects = {
-          select = {
-            enable = true,
-            lookahead = true,
-            keymaps = {
-              ["af"] = "@function.outer",
-              ["if"] = "@function.inner",
-              ["ac"] = "@class.outer",
-              ["ic"] = "@class.inner",
-              ["aa"] = "@parameter.outer",
-              ["ia"] = "@parameter.inner",
-            },
-          },
-          move = {
-            enable = true,
-            set_jumps = true,
-            goto_next_start = {
-              ["]f"] = "@function.outer",
-              ["]c"] = "@class.outer",
-            },
-            goto_next_end = {
-              ["]F"] = "@function.outer",
-              ["]C"] = "@class.outer",
-            },
-            goto_previous_start = {
-              ["[f"] = "@function.outer",
-              ["[c"] = "@class.outer",
-            },
-            goto_previous_end = {
-              ["[F"] = "@function.outer",
-              ["[C"] = "@class.outer",
-            },
-          },
-        },
-      }
+        highlight = { enable = true },
+        indent = { enable = true },
+        fold = { enable = true },  -- Enable treesitter folding
+      })
     end,
   },
-  
+
+  -- UFO (Ultra Fold Operation) for better folding
+  {
+    "kevinhwang91/nvim-ufo",
+    dependencies = {
+      "kevinhwang91/promise-async",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    event = "BufReadPost",
+    config = function()
+      -- Set up global folding options
+      vim.opt.foldcolumn = "1"
+      vim.opt.foldlevel = 99
+      vim.opt.foldlevelstart = 99
+      vim.opt.foldenable = true
+      vim.opt.foldmethod = "expr"
+      vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+
+      require("ufo").setup({
+        provider_selector = function(bufnr, filetype, buftype)
+          return { "treesitter", "indent" }
+        end,
+        -- Nice fold text display
+        fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
+          local newVirtText = {}
+          local suffix = ("  %d lines"):format(endLnum - lnum)
+          local sufWidth = vim.fn.strdisplaywidth(suffix)
+          local targetWidth = width - sufWidth
+          local curWidth = 0
+          for _, chunk in ipairs(virtText) do
+            local chunkText = chunk[1]
+            local chunkWidth = vim.fn.strdisplaywidth(chunkText)
+            if targetWidth > curWidth + chunkWidth then
+              table.insert(newVirtText, chunk)
+            else
+              chunkText = truncate(chunkText, targetWidth - curWidth)
+              local hlGroup = chunk[2]
+              table.insert(newVirtText, {chunkText, hlGroup})
+              chunkWidth = vim.fn.strdisplaywidth(chunkText)
+              if curWidth + chunkWidth < targetWidth then
+                suffix = suffix .. (" "):rep(targetWidth - curWidth - chunkWidth)
+              end
+              break
+            end
+            curWidth = curWidth + chunkWidth
+          end
+          table.insert(newVirtText, {suffix, "MoreMsg"})
+          return newVirtText
+        end
+      })
+
+      -- UFO keymaps
+      vim.keymap.set("n", "zR", require("ufo").openAllFolds, { desc = "Open all folds" })
+      vim.keymap.set("n", "zM", require("ufo").closeAllFolds, { desc = "Close all folds" })
+      vim.keymap.set("n", "zr", require("ufo").openFoldsExceptKinds, { desc = "Open folds except kinds" })
+      vim.keymap.set("n", "zm", require("ufo").closeFoldsWith, { desc = "Close folds with" })
+      vim.keymap.set("n", "K", function()
+        local winid = require("ufo").peekFoldedLinesUnderCursor()
+        if not winid then
+          vim.lsp.buf.hover()
+        end
+      end, { desc = "Peek fold or hover" })
+    end,
+  },
+
+  -- Treesitter context for showing code context
+  {
+    "nvim-treesitter/nvim-treesitter-context",
+    config = function()
+      require("treesitter-context").setup({
+        enable = true,
+        max_lines = 3,
+        min_window_height = 0,
+        line_numbers = true,
+        multiline_threshold = 20,
+        trim_scope = 'outer',
+        mode = 'cursor',
+        separator = nil,
+        zindex = 20,
+        on_attach = nil,
+      })
+    end,
+  },
+
   -- Auto pairs
   {
     "windwp/nvim-autopairs",
@@ -636,234 +776,15 @@ require("lazy").setup({
     end,
   },
   
-  -- Highlight and remove trailing whitespace
+  -- Modern whitespace handling
   {
-    "ntpeters/vim-better-whitespace",
-    config = function()
-      vim.g.better_whitespace_enabled = 1
-      vim.g.strip_whitespace_on_save = 1
-      vim.g.strip_whitespace_confirm = 0
-    end,
-  },
-  
-  -- Terminal
-  {
-    "akinsho/toggleterm.nvim",
-    version = "*",
-    config = function()
-      require("toggleterm").setup {
-        size = 20,
-        open_mapping = [[<c-\>]],
-        hide_numbers = true,
-        shade_filetypes = {},
-        shade_terminals = true,
-        shading_factor = 2,
-        start_in_insert = true,
-        insert_mappings = true,
-        persist_size = true,
-        direction = "float",
-        close_on_exit = true,
-        shell = vim.o.shell,
-        float_opts = {
-          border = "curved",
-          winblend = 0,
-          highlights = {
-            border = "Normal",
-            background = "Normal",
-          },
-        },
-      }
-    end,
-  },
-  
-  -- Dashboard/Start screen
-  {
-    "goolord/alpha-nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    config = function()
-      local alpha = require("alpha")
-      local dashboard = require("alpha.themes.dashboard")
-      
-      -- Custom header
-      dashboard.section.header.val = {
-        "                                                     ",
-        "  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗ ",
-        "  ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║ ",
-        "  ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║ ",
-        "  ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║ ",
-        "  ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║ ",
-        "  ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝ ",
-        "                                                     ",
-        " ███████╗ ██████╗ ██████╗         ██████╗  ██████╗  ",
-        " ██╔════╝██╔═══██╗██╔══██╗        ██╔══██╗██╔════╝  ",
-        " █████╗  ██║   ██║██████╔╝        ██║  ██║█████╗    ",
-        " ██╔══╝  ██║   ██║██╔══██╗        ██║  ██║██╔══╝    ",
-        " ██║     ╚██████╔╝██║  ██║        ██████╔╝███████╗  ",
-        " ╚═╝      ╚═════╝ ╚═╝  ╚═╝        ╚═════╝ ╚══════╝  ",
-        "                                                     ",
-      }
-      
-      -- Menu
-      dashboard.section.buttons.val = {
-        dashboard.button("f", "  Find file", ":Telescope find_files <CR>"),
-        dashboard.button("e", "  New file", ":ene <BAR> startinsert <CR>"),
-        dashboard.button("r", "  Recently used files", ":Telescope oldfiles <CR>"),
-        dashboard.button("t", "  Find text", ":Telescope live_grep <CR>"),
-        dashboard.button("c", "  Configuration", ":e ~/.config/nvim/init.lua <CR>"),
-        dashboard.button("q", "  Quit Neovim", ":qa<CR>"),
-      }
-      
-      -- Footer
-      dashboard.section.footer.val = "Ready to code like a pro!"
-      
-      alpha.setup(dashboard.opts)
-    end,
-  },
-  
-  -- Which-key for keybinding help
-  {
-    "folke/which-key.nvim",
+    "McAuleyPenney/tidy.nvim",
     event = "VeryLazy",
     config = function()
-      require("which-key").setup {
-        plugins = {
-          marks = true,
-          registers = true,
-          spelling = {
-            enabled = true,
-            suggestions = 20,
-          },
-        },
-        window = {
-          border = "rounded",
-          padding = { 2, 2, 2, 2 },
-        },
-      }
-      
-      -- Register key groups
-      local wk = require("which-key")
-      wk.register({
-        f = {
-          name = "File",
-          f = { "<cmd>Telescope find_files<cr>", "Find File" },
-          r = { "<cmd>Telescope oldfiles<cr>", "Open Recent File" },
-          g = { "<cmd>Telescope live_grep<cr>", "Live Grep" },
-          b = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
-          n = { "<cmd>enew<cr>", "New File" },
-        },
-        g = {
-          name = "Git",
-          s = { "Stage Hunk" },
-          r = { "Reset Hunk" },
-          S = { "Stage Buffer" },
-          u = { "Undo Stage Hunk" },
-          R = { "Reset Buffer" },
-          p = { "Preview Hunk" },
-          b = { "Blame Line" },
-          d = { "Diff This" },
-          D = { "Diff This ~" },
-        },
-        p = {
-          name = "Project",
-          f = { "<cmd>Telescope git_files<cr>", "Find Git Files" },
-          s = { "<cmd>Telescope git_status<cr>", "Git Status" },
-          b = { "<cmd>Telescope git_branches<cr>", "Git Branches" },
-          c = { "<cmd>Telescope git_commits<cr>", "Git Commits" },
-          t = { "<cmd>NvimTreeToggle<cr>", "Toggle NvimTree" },
-        },
-        l = {
-          name = "LSP",
-          a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
-          d = { "<cmd>lua vim.lsp.buf.definition()<cr>", "Go To Definition" },
-          D = { "<cmd>lua vim.lsp.buf.declaration()<cr>", "Go To Declaration" },
-          i = { "<cmd>lua vim.lsp.buf.implementation()<cr>", "Go To Implementation" },
-          r = { "<cmd>lua vim.lsp.buf.references()<cr>", "References" },
-          R = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename" },
-          f = { "<cmd>lua vim.lsp.buf.format({ async = true })<cr>", "Format" },
-          h = { "<cmd>lua vim.lsp.buf.hover()<cr>", "Hover Documentation" },
-          s = { "<cmd>lua vim.lsp.buf.signature_help()<cr>", "Signature Help" },
-          t = { "<cmd>lua vim.lsp.buf.type_definition()<cr>", "Type Definition" },
-          l = { "<cmd>lua vim.diagnostic.open_float()<cr>", "Line Diagnostics" },
-        },
-        t = {
-          name = "Toggle",
-          t = { "<cmd>ToggleTerm<cr>", "Terminal" },
-          b = { "Toggle Git Blame" },
-          d = { "Toggle Deleted" },
-        },
-        w = {
-          name = "Window",
-          v = { "<cmd>vsplit<cr>", "Vertical Split" },
-          s = { "<cmd>split<cr>", "Horizontal Split" },
-          h = { "<cmd>wincmd h<CR>", "Move Left" },
-          j = { "<cmd>wincmd j<CR>", "Move Down" },
-          k = { "<cmd>wincmd k<CR>", "Move Up" },
-          l = { "<cmd>wincmd l<CR>", "Move Right" },
-          q = { "<cmd>q<cr>", "Close Window" },
-          o = { "<cmd>only<cr>", "Only Window" },
-        },
-        ["<space>"] = { "<cmd>Telescope<cr>", "Telescope" },
-      }, { prefix = "<leader>" })
+      require("tidy").setup()
     end,
   },
-  
-  -- Add Go development tools
-  {
-    "ray-x/go.nvim",
-    dependencies = {
-      "ray-x/guihua.lua",
-      "neovim/nvim-lspconfig",
-      "nvim-treesitter/nvim-treesitter",
-    },
-    config = function()
-      require("go").setup({
-        goimport = 'gopls', -- goimport command
-        gofmt = 'gopls', -- gofmt command
-        max_line_len = 120, -- max line length in goline format
-        tag_transform = false, -- tag_transfer  check gomodifytags for details
-        verbose = false, -- output loginf in messages
-        log_path = vim.fn.expand("$HOME") .. "/tmp/gonvim.log",
-        lsp_codelens = true, -- set to false to disable codelens
-        lsp_keymaps = false, -- set to false to disable gopls/lsp keymap
-        lsp_document_formatting = true,
-        -- lsp_cfg = false, -- true: apply go.nvim non-default gopls setup
-        -- lsp_gofumpt = true, -- true: set default gofmt in gopls format to gofumpt
-        diagnostic = {
-          hdlr = true, -- hook lsp diag handler
-          virtual_text = true, -- show virtual for diagnostic message
-          underline = true, -- use underline for diagnostic
-        },
-        test_dir = '', -- default: "", -- if set, will be added to `go.test.files`
-        run_in_floaterm = true, -- set to true to run in float window.
-      })
 
-      -- Set up autocommands for Go
-      local autocmd = vim.api.nvim_create_autocmd
-      autocmd("BufWritePre", {
-        pattern = "*.go",
-        callback = function()
-          require('go.format').goimport()
-        end,
-      })
-
-      -- Key mappings for Go
-      local function map(mode, lhs, rhs, opts)
-        local options = { noremap = true, silent = true }
-        if opts then options = vim.tbl_extend("force", options, opts) end
-        vim.keymap.set(mode, lhs, rhs, options)
-      end
-
-      map("n", "<leader>gt", "<cmd>GoTest<CR>", { desc = "Go Test" })
-      map("n", "<leader>gtf", "<cmd>GoTestFunc<CR>", { desc = "Go Test Function" })
-      map("n", "<leader>gr", "<cmd>GoRun<CR>", { desc = "Go Run" })
-      map("n", "<leader>gi", "<cmd>GoImport<CR>", { desc = "Go Import" })
-      map("n", "<leader>gI", "<cmd>GoImpl<CR>", { desc = "Go Implement" })
-      map("n", "<leader>gfs", "<cmd>GoFillStruct<CR>", { desc = "Go Fill Struct" })
-      map("n", "<leader>gat", "<cmd>GoAddTag<CR>", { desc = "Go Add Tags" })
-      map("n", "<leader>grt", "<cmd>GoRmTag<CR>", { desc = "Go Remove Tags" })
-    end,
-  },
-  
   -- Python development
   {
     "mfussenegger/nvim-dap-python",
@@ -1542,7 +1463,7 @@ require("lazy").setup({
       vim.keymap.set("n", "<leader>qd", function() require("persistence").stop() end, { desc = "Don't Save Current Session" })
     end,
   },
-  
+
   -- Improved UI components
   {
     "stevearc/dressing.nvim",
@@ -1559,7 +1480,7 @@ require("lazy").setup({
       }
     end,
   },
-  
+
   -- Clipboard manager
   {
     "AckslD/nvim-neoclip.lua",
@@ -1769,6 +1690,206 @@ require("lazy").setup({
           lsp_doc_border = false,
         },
       })
+    end,
+  },
+
+  -- Modern indent scope visualization
+  {
+    "echasnovski/mini.indentscope",
+    version = false,
+    config = function()
+      require("mini.indentscope").setup({
+        symbol = "│",
+        options = { try_as_border = true },
+      })
+    end,
+  },
+
+  -- Better fold handling with UFO
+  {
+    "kevinhwang91/nvim-ufo",
+    dependencies = "kevinhwang91/promise-async",
+    config = function()
+      require("ufo").setup({
+        provider_selector = function(bufnr, filetype, buftype)
+          return {"treesitter", "indent"}
+        end,
+        fold_virt_text_handler = function(virtText, lnum, endLnum, width, truncate)
+          local newVirtText = {}
+          local suffix = ("  %d "):format(endLnum - lnum)
+          local sufWidth = vim.fn.strdisplaywidth(suffix)
+          local targetWidth = width - sufWidth
+          local curWidth = 0
+          for _, chunk in ipairs(virtText) do
+            local chunkText = chunk[1]
+            local chunkWidth = vim.fn.strdisplaywidth(chunkText)
+            if targetWidth > curWidth + chunkWidth then
+              table.insert(newVirtText, chunk)
+            else
+              chunkText = truncate(chunkText, targetWidth - curWidth)
+              local hlGroup = chunk[2]
+              table.insert(newVirtText, {chunkText, hlGroup})
+              chunkWidth = vim.fn.strdisplaywidth(chunkText)
+              -- str width returned from truncate() may less than 2nd argument, need padding
+              if curWidth + chunkWidth < targetWidth then
+                suffix = suffix .. (" "):rep(targetWidth - curWidth - chunkWidth)
+              end
+              break
+            end
+            curWidth = curWidth + chunkWidth
+          end
+          table.insert(newVirtText, {suffix, "MoreMsg"})
+          return newVirtText
+        end,
+      })
+      -- Using fold keymaps
+      vim.keymap.set("n", "zR", require("ufo").openAllFolds)
+      vim.keymap.set("n", "zM", require("ufo").closeAllFolds)
+    end,
+  },
+
+  -- Modern code action menu
+  {
+    "weilbith/nvim-code-action-menu",
+    cmd = "CodeActionMenu",
+    config = function()
+      vim.keymap.set("n", "<leader>ca", "<cmd>CodeActionMenu<CR>", { desc = "Code Action Menu" })
+    end,
+  },
+
+  -- LSP configuration with lazy loading
+  {
+    "neovim/nvim-lspconfig",
+    event = { "BufReadPre", "BufNewFile" },
+    dependencies = {
+      -- Automatically install LSPs
+      "williamboman/mason.nvim",
+      "williamboman/mason-lspconfig.nvim",
+      -- Additional lua configuration
+      "folke/neodev.nvim",
+      -- LSP status
+      { "j-hui/fidget.nvim", tag = "legacy" },
+    },
+    config = function()
+      -- Setup mason
+      require("mason").setup()
+      require("mason-lspconfig").setup {
+        ensure_installed = {
+          "gopls",
+          "tsserver",
+          "pyright",
+          "lua_ls",
+          "rust_analyzer",
+        },
+        automatic_installation = true,
+      }
+      
+      -- Setup lua development for neovim
+      require("neodev").setup()
+      
+      -- Status updates for LSP
+      require("fidget").setup()
+      
+      -- LSP settings
+      local lspconfig = require("lspconfig")
+      
+      -- Define on_attach function
+      local on_attach = function(client, bufnr)
+        -- Enable completion triggered by <c-x><c-o>
+        vim.api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
+        
+        -- Buffer local mappings
+        local opts = { noremap=true, silent=true, buffer=bufnr }
+        vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+        vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+        vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+        vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+        vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+        vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, opts)
+        vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+        vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
+        vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+        vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format { async = true } end, opts)
+      end
+      
+      -- Common capabilities
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities = require("cmp_nvim_lsp").default_capabilities(capabilities)
+      
+      -- Setup LSP servers
+      lspconfig.gopls.setup {
+        on_attach = on_attach,
+        capabilities = capabilities,
+        settings = {
+          gopls = {
+            analyses = {
+              unusedparams = true,
+            },
+            staticcheck = true,
+            gofumpt = true,
+          },
+        },
+      }
+      
+      lspconfig.tsserver.setup {
+        on_attach = on_attach,
+        capabilities = capabilities,
+      }
+      
+      lspconfig.pyright.setup {
+        on_attach = on_attach,
+        capabilities = capabilities,
+        settings = {
+          python = {
+            analysis = {
+              typeCheckingMode = "basic",
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
+            },
+          },
+        },
+      }
+      
+      lspconfig.lua_ls.setup {
+        on_attach = on_attach,
+        capabilities = capabilities,
+        settings = {
+          Lua = {
+            runtime = {
+              version = "LuaJIT",
+            },
+            diagnostics = {
+              globals = { "vim" },
+            },
+            workspace = {
+              library = vim.api.nvim_get_runtime_file("", true),
+              checkThirdParty = false,
+            },
+            telemetry = {
+              enable = false,
+            },
+          },
+        },
+      }
+      
+      lspconfig.rust_analyzer.setup {
+        on_attach = on_attach,
+        capabilities = capabilities,
+        settings = {
+          ["rust-analyzer"] = {
+            assist = {
+              importGranularity = "module",
+              importPrefix = "self",
+            },
+            cargo = {
+              loadOutDirsFromCheck = true,
+            },
+            procMacro = {
+              enable = true,
+            },
+          },
+        },
+      }
     end,
   },
 })
