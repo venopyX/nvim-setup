@@ -1,5 +1,12 @@
 # Neovim Professional Setup - Complete Usage Guide
 
+  ██╗   ██╗███████╗███╗   ██╗ ██████╗ ██████╗ ██╗   ██╗██╗  ██╗
+  ██║   ██║██╔════╝████╗  ██║██╔═══██╗██╔══██╗╚██╗ ██╔╝╚██╗██╔╝
+  ██║   ██║█████╗  ██╔██╗ ██║██║   ██║██████╔╝ ╚████╔╝  ╚███╔╝ 
+  ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║██║   ██║██╔═══╝   ╚██╔╝   ██╔██╗ 
+   ╚████╔╝ ███████╗██║ ╚████║╚██████╔╝██║        ██║   ██╔╝ ██╗
+    ╚═══╝  ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝        ╚═╝   ╚═╝  ╚═╝
+
 A comprehensive guide for your modern Neovim development environment, organized for both beginners and advanced users.
 
 ## Table of Contents
